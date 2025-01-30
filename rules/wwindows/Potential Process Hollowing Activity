@@ -1,0 +1,52 @@
+https://github.com/SigmaHQ/sigma/blob/master/rules/windows/process_tampering/proc_tampering_susp_process_hollowing.yml
+
+Description--> This detection identifies process hollowing by monitoring when a memory process image differs from the disk image. 
+              Process hollowing is often used by malware to inject malicious code into a legitimate process. The rule filters out legitimate processes such as
+              those in Program Files, Windows System32, and popular applications like Opera and Microsoft Edge. If triggered, this behavior may indicate an evasion 
+              or privilege escalation attempt, requiring investigation at a medium level of priority.
+
+MITRE ATT&CK Framework Mitigation:
+Technique: T1055.012 - Process Injection: Process Hollowing
+
+Mitigation:
+Code Signing Enforcement: Ensure only signed code is allowed to run.
+Application Control: Implement whitelisting to restrict unauthorized applications.
+Behavioral Analysis: Use EDR tools to monitor abnormal process behavior.
+Patch Management: Regularly update software to address known vulnerabilities.
+
+=====================================================
+title: Potential Process Hollowing Activity
+id: c4b890e5-8d8c-4496-8c66-c805753817cd
+status: test
+description: Detects when a memory process image does not match the disk image, indicative of process hollowing.
+references:
+    - https://twitter.com/SecurePeacock/status/1486054048390332423?s=20
+    - https://www.bleepingcomputer.com/news/microsoft/microsoft-sysmon-now-detects-malware-process-tampering-attempts/
+author: Christopher Peacock '@securepeacock', SCYTHE '@scythe_io', Sittikorn S
+date: 2022-01-25
+modified: 2023-11-28
+tags:
+    - attack.defense-evasion
+    - attack.privilege-escalation
+    - attack.t1055.012
+logsource:
+    product: windows
+    category: process_tampering
+detection:
+    selection:
+        Type: 'Image is replaced'
+    filter_main_generic:
+        Image|contains:
+            - ':\Program Files (x86)'
+            - ':\Program Files\'
+            - ':\Windows\System32\wbem\WMIADAP.exe'
+            - ':\Windows\SysWOW64\wbem\WMIADAP.exe'
+    filter_optional_opera:
+        Image|contains: '\AppData\Local\Programs\Opera\'
+        Image|endswith: '\opera.exe'
+    filter_optional_edge:
+        Image|endswith: '\WindowsApps\MicrosoftEdge.exe'
+    condition: selection and not 1 of filter_main_* and not 1 of filter_optional_*
+falsepositives:
+    - Unknown
+level: medium
